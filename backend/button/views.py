@@ -7,6 +7,11 @@ from dotenv import load_dotenv
 from django.http import JsonResponse
 from insightface.app import FaceAnalysis
 import json 
+from django.core.files.storage import default_storage
+from django.conf import settings
+from rest_framework.decorators import api_view, parser_classes
+from datetime import datetime
+
 
 load_dotenv()
 
@@ -30,17 +35,32 @@ headers={
 #)
 
 TOKEN = os.getenv('TOKEN')
+class Img_sent:
+  def __init__(self,image_path,location,time):
+
+    self.image_path=image_path
+    self.location=location
+    self.time=time
+    self.image = cv2.imread(image_path)
 
 
-def matches(request):
-  matchedkids=7
-  return matchedkids
+matchedkids=[1,2]
+
+#@api_view(["POST"])
+#@parser_classes([MultiPartParser, FormParser])
 def facerec(request):
   if request.method=="GET":
-    test_img=cv2.imread('/Users/aaronpinto/button/backend/button/data/rawr.jpeg')
+   # image_file = request.FILES["image"]
+    #save_path = os.path.join(settings.MEDIA_ROOT, image_file.name)
+    #path = default_storage.save(save_path, image_file)
+    image_url_in = 'skibdi'
+    #request.build_absolute_uri(f"{settings.MEDIA_URL}{image_file.name}")
+
+
+    test_img= Img_sent("/Users/aaronpinto/button/backend/button/data/rawr.jpeg",'4103 4th St N','09:00:00')
     app=FaceAnalysis()
     app.prepare(ctx_id=0, det_size=(640, 640))
-    test_faces = app.get(test_img)
+    test_faces = app.get(test_img.image)
     headers = {"Authorization": f"Bearer {TOKEN}"}
     posters_url = f"{API_BASE}/Posters?organizationCodes=NCMC&skip=0&limit=20&enableIpGeolocationSearch=true&geolocationDistanceInMiles=50"
     posters= requests.get(posters_url,headers=headers).json().get("posters")
@@ -62,21 +82,29 @@ def facerec(request):
           for face in faces:
             emb=face.normed_embedding
             similarity=np.dot(test_emb,emb)
-            if similarity>best_score:
+            if similarity> best_score:
               best_score = similarity
               best_match = {
                 "case_number": caseNum,
                 "organization_code":orgCode,
                 "similarity":float(similarity),
-                "image_url":image_url
+                "image_url":image_url,
+                "lastseen": image_url_in,
+                "timestamp": datetime.now()
               }
+
     if best_match: 
       return JsonResponse({"best_match":best_match})
+    
     else:
       return JsonResponse({"message": "No matches found."})
 
 
+def matches(request):
+  if request.method=="GET":
 
+    print(f'{matchedkids[0]}')
+    return 
 
 
       
